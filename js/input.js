@@ -1,3 +1,5 @@
+import { WORLD_W } from './utils/constants.js';
+
 export class Input {
     constructor(canvas) {
         this.canvas = canvas;
@@ -70,7 +72,7 @@ export class Input {
                     const dx = pos.x - this.joystick.startX;
                     const dy = pos.y - this.joystick.startY;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    const maxR = this.joystickMaxRadius * (this.canvas.width / 1600);
+                    const maxR = this.joystickMaxRadius * (this.canvas.width / WORLD_W);
 
                     this.joystick.magnitude = Math.min(dist / maxR, 1);
                     this.joystick.angle = Math.atan2(dy, dx);

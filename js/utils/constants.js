@@ -87,7 +87,7 @@ export const TRUCK_ARRIVAL_DELAY = 2000; // ms between trucks
 // === SAND PILES ===
 export const SANDPILE_MAX = 100; // units of sand
 export const SANDPILE_REGEN_RATE = 2; // units/s
-export const SANDPILE_INTERACTION_DIST = 70;
+export const SANDPILE_INTERACTION_DIST = 100;
 
 // === AREK ===
 export const AREK_SPEED = 40; // px/s
@@ -114,7 +114,7 @@ export const SCORE_TIME_MULTIPLIER = 5;
 export const SCORE_OVERLOAD_PENALTY = -200;
 
 // === PHYSICS ===
-export const INTERACTION_DIST = 70;
+export const INTERACTION_DIST = 100;
 export const TICK_RATE = 1000 / 60;
 
 // === TEXTS (PL) ===

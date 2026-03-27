@@ -333,19 +333,33 @@ export class Renderer {
 
     // ── joystick ─────────────────────────────────────────────
     renderJoystick(input) {
+        const ctx = this.ctx;
+        const outerR = this._sx(55);
+        const innerR = this._sx(24);
+
+        // Always show static hint in bottom-left
+        const hintX = this._sx(120);
+        const hintY = this.canvas.height - this._sy(110);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(hintX, hintY, outerR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.beginPath();
+        ctx.arc(hintX, hintY, innerR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw active joystick on top when touching
         if (!input || !input.joystick || !input.joystick.active) return;
 
-        const ctx = this.ctx;
-        const j   = input.joystick;
-
-        // Input coordinates are already in canvas space
-        const baseX = j.startX;
-        const baseY = j.startY;
+        const j = input.joystick;
+        const baseX  = j.startX;
+        const baseY  = j.startY;
         const thumbX = j.currentX;
         const thumbY = j.currentY;
-
-        const outerR = 50 * this.scaleX;
-        const innerR = 22 * this.scaleX;
 
         // Outer ring
         ctx.strokeStyle = COLORS.joystickBase;
@@ -354,7 +368,6 @@ export class Renderer {
         ctx.arc(baseX, baseY, outerR, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Fill outer lightly
         ctx.fillStyle = COLORS.joystickBase;
         ctx.beginPath();
         ctx.arc(baseX, baseY, outerR, 0, Math.PI * 2);
@@ -370,12 +383,12 @@ export class Renderer {
     // ── action button ────────────────────────────────────────
     renderActionButton(label, enabled) {
         const ctx = this.ctx;
-        const btnW = this._sx(160);
-        const btnH = this._sy(60);
-        const margin = this._sx(20);
+        const btnW = this._sx(200);
+        const btnH = this._sy(90);
+        const margin = this._sx(24);
         const bx = this.canvas.width - btnW - margin;
         const by = this.canvas.height - btnH - margin;
-        const radius = this._sx(12);
+        const radius = this._sx(16);
 
         // Rounded rectangle
         ctx.fillStyle = enabled ? COLORS.actionButton : COLORS.actionButtonDisabled;
@@ -394,7 +407,7 @@ export class Renderer {
 
         // Label
         ctx.fillStyle = COLORS.buttonText;
-        ctx.font = `bold ${Math.round(this._sy(22))}px sans-serif`;
+        ctx.font = `bold ${Math.round(this._sy(28))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, bx + btnW / 2, by + btnH / 2);

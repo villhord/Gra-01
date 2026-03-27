@@ -13,10 +13,24 @@ let accumulator = 0;
 const dt = TICK_RATE / 1000; // fixed timestep in seconds
 
 function resize() {
-    canvas.width = window.innerWidth * window.devicePixelRatio;
-    canvas.height = window.innerHeight * window.devicePixelRatio;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+
+    // Letterbox/pillarbox: fit game world into screen keeping aspect ratio
+    const scale = Math.min(screenW / WORLD_W, screenH / WORLD_H);
+    const displayW = Math.floor(WORLD_W * scale);
+    const displayH = Math.floor(WORLD_H * scale);
+
+    // Canvas drawing size uses devicePixelRatio for sharp rendering on HiDPI
+    canvas.width = Math.floor(displayW * dpr);
+    canvas.height = Math.floor(displayH * dpr);
+
+    // CSS size = displayed size (centered on screen)
+    canvas.style.width = displayW + 'px';
+    canvas.style.height = displayH + 'px';
+    canvas.style.left = Math.floor((screenW - displayW) / 2) + 'px';
+    canvas.style.top = Math.floor((screenH - displayH) / 2) + 'px';
 
     if (game && game.quarry) {
         game.quarry.generateTerrain(canvas.width / WORLD_W);
