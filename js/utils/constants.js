@@ -12,10 +12,12 @@ export const COLORS = {
     roadPlate: '#888888',
     roadPlateGrid: '#777777',
     quarryBorder: '#5C4033',
-    loaderBody: '#E8B828',
-    loaderCab: '#D4A017',
-    loaderBucket: '#C89A10',
-    loaderWheel: '#333333',
+    loaderBody: '#E8C830',
+    loaderCab: '#D4A820',
+    loaderBucket: '#5A4A2A',
+    loaderWheel: '#1A1A1A',
+    loaderArm: '#C0A020',
+    loaderArticulation: '#666666',
     truck3Body: '#6B7B8D',
     truck4Body: '#5A6A7C',
     patelniaBody: '#4A5A6C',
@@ -28,28 +30,33 @@ export const COLORS = {
     arekSkin: '#DEB887',
     arekPants: '#2F4F4F',
     hud: '#FFFFFF',
-    hudBg: 'rgba(0, 0, 0, 0.5)',
-    menuBg: 'rgba(0, 0, 0, 0.75)',
+    hudBg: 'rgba(0, 0, 0, 0.55)',
+    menuBg: 'rgba(0, 0, 0, 0.78)',
     buttonBg: '#D4A017',
     buttonText: '#FFFFFF',
     warning: '#FF4444',
     success: '#44FF44',
     joystickBase: 'rgba(255, 255, 255, 0.2)',
     joystickThumb: 'rgba(255, 255, 255, 0.5)',
-    actionButton: 'rgba(212, 160, 23, 0.6)',
+    actionButton: 'rgba(212, 160, 23, 0.75)',
+    actionButtonHold: 'rgba(255, 200, 0, 0.9)',
     actionButtonDisabled: 'rgba(128, 128, 128, 0.3)',
+    fillBar: '#D2B48C',
+    speechBg: 'rgba(255,255,255,0.93)',
+    speechText: '#222222',
 };
 
 // === LOADER ===
 export const LOADER_W = 60;
 export const LOADER_H = 40;
-export const LOADER_MAX_SPEED = 150; // px/s
-export const LOADER_ACCELERATION = 120; // px/s^2
+export const LOADER_MAX_SPEED = 150;
+export const LOADER_ACCELERATION = 120;
 export const LOADER_FRICTION = 0.92;
-export const LOADER_TURN_RATE = 2.5; // rad/s
-export const LOADER_BUCKET_CAPACITY = 3; // tons per scoop
-export const LOADER_SCOOP_TIME = 800; // ms
-export const LOADER_DUMP_TIME = 800; // ms
+export const LOADER_TURN_RATE = 2.5;
+export const BUCKET_FILL_RATE = 1.0;  // tons/second while holding
+export const BUCKET_MAX_TONS  = 4;    // max bucket capacity
+export const LOADER_SCOOP_TIME = 600; // ms animation
+export const LOADER_DUMP_TIME  = 600;
 
 // === TRUCKS ===
 export const TRUCK_TYPES = {
@@ -82,36 +89,35 @@ export const TRUCK_TYPES = {
     },
 };
 
-export const TRUCK_ARRIVAL_DELAY = 2000; // ms between trucks
-
 // === SAND PILES ===
-export const SANDPILE_MAX = 100; // units of sand
-export const SANDPILE_REGEN_RATE = 2; // units/s
+export const SANDPILE_MAX = 100;
+export const SANDPILE_REGEN_RATE = 2;
 export const SANDPILE_INTERACTION_DIST = 100;
 
 // === AREK ===
-export const AREK_SPEED = 40; // px/s
+export const AREK_SPEED = 40;
 export const AREK_RADIUS = 15;
-export const AREK_PENALTY_TIME = 5; // seconds deducted
-export const AREK_STUN_TIME = 1500; // ms loader stunned
-export const AREK_VISIBLE_TIME = 18000; // ms on screen
-export const AREK_WARNING_DURATION = 2000; // ms warning displayed
+export const AREK_PENALTY_SCORE = 200;
+export const AREK_STUN_TIME = 1500;
+export const AREK_VISIBLE_TIME = 18000;
+export const AREK_WARNING_DURATION = 2000;
 
-// === LEVELS ===
+// === LEVELS (trucks = required per level, increases by 1 each level) ===
 export const LEVELS = [
-    { time: 90, trucks: 2, types: ['3-osio'], arekInterval: 20000 },
-    { time: 85, trucks: 2, types: ['3-osio', '4-osio'], arekInterval: 30000 },
-    { time: 80, trucks: 3, types: ['3-osio', '4-osio'], arekInterval: 25000 },
-    { time: 75, trucks: 3, types: ['4-osio', 'patelnia'], arekInterval: 20000 },
-    { time: 70, trucks: 4, types: ['4-osio', 'patelnia'], arekInterval: 15000 },
-    { time: 65, trucks: 4, types: ['3-osio', '4-osio', 'patelnia'], arekInterval: 12000 },
+    { trucks: 2, types: ['3-osio'],                        arekInterval: 0 },
+    { trucks: 3, types: ['3-osio', '4-osio'],              arekInterval: 30000 },
+    { trucks: 4, types: ['3-osio', '4-osio'],              arekInterval: 25000 },
+    { trucks: 5, types: ['4-osio', 'patelnia'],            arekInterval: 20000 },
+    { trucks: 6, types: ['4-osio', 'patelnia'],            arekInterval: 15000 },
+    { trucks: 7, types: ['3-osio', '4-osio', 'patelnia'], arekInterval: 12000 },
 ];
 
 // === SCORING ===
-export const SCORE_PER_DUMP = 100;
-export const SCORE_TRUCK_BONUS = 500;
-export const SCORE_TIME_MULTIPLIER = 5;
-export const SCORE_OVERLOAD_PENALTY = -200;
+export const SCORE_PER_TON        = 50;   // per ton loaded (up to maxLoad)
+export const SCORE_ACCURACY_BONUS = 300;  // exact load bonus (±1t)
+export const SCORE_TIME_BONUS_MAX = 500;  // max time bonus per truck
+export const SCORE_TIME_WINDOW    = 90;   // seconds for full time bonus
+export const SCORE_OVERLOAD_PENALTY = 400; // deducted for overload
 
 // === PHYSICS ===
 export const INTERACTION_DIST = 100;
@@ -120,44 +126,44 @@ export const TICK_RATE = 1000 / 60;
 // === TEXTS (PL) ===
 export const TEXT = {
     title: 'GRA-01: ŁADOWARKA',
-    subtitle: 'Załaduj piasek na ciężarówki\nzanim skończy się czas!',
+    subtitle: 'Załaduj piasek na ciężarówki!',
     startGame: 'ROZPOCZNIJ GRĘ',
     score: 'Wynik',
-    time: 'Czas',
     level: 'Poziom',
+    trucks: 'Auta',
     pause: 'PAUZA',
     resume: 'KONTYNUUJ',
     restart: 'OD NOWA',
-    gameOver: 'KONIEC CZASU!',
-    trucksLoaded: 'Załadowane ciężarówki',
+    gameOver: 'KONIEC!',
+    trucksLoaded: 'Załadowanych aut',
     yourScore: 'Twój wynik',
     bestScore: 'Najlepszy wynik',
     playAgain: 'ZAGRAJ PONOWNIE',
-    scoop: 'ZAŁADUJ',
+    scoop: 'NABIERZ',
     dump: 'WYSYP',
     horn: 'SYGNAŁ',
     overloaded: 'PRZEŁADOWANE!',
     arekWarning: 'UWAGA AREK!',
     levelUp: 'POZIOM',
-    tutorial1: 'Przesuń palcem po lewej stronie\nekranu, aby sterować ładowarką',
-    tutorial2: 'Podjedź do hałdy piasku\ni naciśnij ZAŁADUJ',
-    tutorial3: 'Podjedź do ciężarówki\ni naciśnij WYSYP',
     tapContinue: 'Dotknij, aby kontynuować',
-    rotatDevice: 'Obróć urządzenie do pozycji poziomej',
+    speech: 'Czekam na załadunek!',
+    truckTimer: 'Czas:',
+    accuracy: 'Dokładnie!',
+    complete: 'UKOŃCZONO!',
 };
 
 // === QUARRY LAYOUT ===
 export const QUARRY = {
     borderWidth: 8,
     loadingZone: { x: 200, y: 720, w: 1200, h: 80 },
-    roadPlates: { x: 0, y: 750, w: 1600, h: 150 },
-    truckEntry: { x: 1600, y: 780 },
-    truckExit: { x: -150, y: 780 },
-    truckWait: { x: 800, y: 780 },
+    roadPlates:  { x: 0, y: 750, w: 1600, h: 150 },
+    truckEntry:  { x: 1650, y: 780 },
+    truckExit:   { x: -160, y: 780 },
+    truckWait:   { x: 800,  y: 780 },
     sandPiles: [
-        { x: 250, y: 200, radius: 80 },
+        { x: 250,  y: 200, radius: 80 },
         { x: 1200, y: 180, radius: 70 },
-        { x: 350, y: 500, radius: 75 },
+        { x: 350,  y: 500, radius: 75 },
     ],
     loaderStart: { x: 800, y: 450 },
 };

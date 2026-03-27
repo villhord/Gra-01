@@ -4,6 +4,8 @@ import {
     WORLD_H,
     LOADER_W,
     LOADER_H,
+    BUCKET_MAX_TONS,
+    TEXT,
 } from './utils/constants.js';
 
 export class Renderer {
@@ -12,15 +14,9 @@ export class Renderer {
         this.ctx = canvas.getContext('2d');
     }
 
-    get scaleX() {
-        return this.canvas.width / WORLD_W;
-    }
+    get scaleX() { return this.canvas.width / WORLD_W; }
+    get scaleY() { return this.canvas.height / WORLD_H; }
 
-    get scaleY() {
-        return this.canvas.height / WORLD_H;
-    }
-
-    // ── helpers ──────────────────────────────────────────────
     _sx(v) { return v * this.scaleX; }
     _sy(v) { return v * this.scaleY; }
 
@@ -32,11 +28,7 @@ export class Renderer {
     // ── terrain ──────────────────────────────────────────────
     renderTerrain(quarry) {
         if (!quarry.terrainCanvas) return;
-        this.ctx.drawImage(
-            quarry.terrainCanvas,
-            0, 0,
-            this.canvas.width, this.canvas.height,
-        );
+        this.ctx.drawImage(quarry.terrainCanvas, 0, 0, this.canvas.width, this.canvas.height);
     }
 
     // ── sand pile ────────────────────────────────────────────
@@ -45,22 +37,18 @@ export class Renderer {
         const cx = this._sx(pile.x);
         const cy = this._sy(pile.y);
         const r  = this._sx(pile.currentRadius);
-
         if (r < 1) return;
 
-        // Larger base circle
         ctx.fillStyle = COLORS.sandDark;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // Lighter overlapping circle offset upward
         ctx.fillStyle = COLORS.sand;
         ctx.beginPath();
         ctx.arc(cx, cy - r * 0.15, r * 0.85, 0, Math.PI * 2);
         ctx.fill();
 
-        // Pre-generated stones
         for (const s of pile.stones) {
             const sx = cx + this._sx(s.x) * (pile.currentRadius / pile.baseRadius);
             const sy = cy + this._sy(s.y) * (pile.currentRadius / pile.baseRadius);
@@ -72,7 +60,7 @@ export class Renderer {
         }
     }
 
-    // ── loader ───────────────────────────────────────────────
+    // ── loader (Volvo L-series top view) ─────────────────────
     renderLoader(loader) {
         const ctx = this.ctx;
         const x = this._sx(loader.x);
@@ -84,53 +72,79 @@ export class Renderer {
         ctx.translate(x, y);
         ctx.rotate(loader.angle);
 
-        // Body
+        // ── Rear body / counterweight (left/back) ──
+        const rearW = w * 0.48;
+        const rearH = h;
         ctx.fillStyle = COLORS.loaderBody;
-        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.fillRect(-w / 2, -rearH / 2, rearW, rearH);
 
-        // Cab (darker yellow, back portion)
-        const cabW = w * 0.35;
+        // Cab detail on rear body (darker stripe)
+        const cabStripeW = rearW * 0.38;
         ctx.fillStyle = COLORS.loaderCab;
-        ctx.fillRect(-w / 2, -h / 2, cabW, h);
+        ctx.fillRect(-w / 2, -rearH / 2, cabStripeW, rearH);
 
-        // Bucket at front (trapezoid)
-        const bucketW = w * 0.18;
-        const bucketFrontH = h * 1.1;
-        const bucketBackH  = h * 0.8;
+        // Rear window / glass on cab
+        const glassW = cabStripeW * 0.55;
+        const glassH = rearH * 0.5;
+        ctx.fillStyle = COLORS.truckWindshield;
+        ctx.fillRect(-w / 2 + cabStripeW * 0.2, -glassH / 2, glassW, glassH);
+
+        // ── Articulation joint (pinch in middle) ──
+        const artX   = -w / 2 + rearW;
+        const artW   = w * 0.12;
+        const artH   = h * 0.5;
+        ctx.fillStyle = COLORS.loaderArticulation;
+        ctx.fillRect(artX, -artH / 2, artW, artH);
+
+        // ── Front frame (narrower) ──
+        const frontX = artX + artW;
+        const frontW = w * 0.24;
+        const frontH = h * 0.78;
+        ctx.fillStyle = COLORS.loaderBody;
+        ctx.fillRect(frontX, -frontH / 2, frontW, frontH);
+
+        // Boom arms on sides of front frame (dark lines)
+        const armThick = this._sy(3);
+        ctx.fillStyle = COLORS.loaderArm;
+        ctx.fillRect(frontX, -frontH / 2, frontW, armThick);
+        ctx.fillRect(frontX, frontH / 2 - armThick, frontW, armThick);
+
+        // ── Bucket (trapezoid at front) ──
+        const bkX     = frontX + frontW;
+        const bkDepth = w * 0.18;
+        const bkBackH = frontH;
+        const bkFrontH = frontH * 1.2;
         ctx.beginPath();
-        ctx.moveTo(w / 2,             -bucketBackH / 2);
-        ctx.lineTo(w / 2 + bucketW,   -bucketFrontH / 2);
-        ctx.lineTo(w / 2 + bucketW,    bucketFrontH / 2);
-        ctx.lineTo(w / 2,              bucketBackH / 2);
+        ctx.moveTo(bkX,            -bkBackH / 2);
+        ctx.lineTo(bkX + bkDepth,  -bkFrontH / 2);
+        ctx.lineTo(bkX + bkDepth,   bkFrontH / 2);
+        ctx.lineTo(bkX,             bkBackH / 2);
         ctx.closePath();
         ctx.fillStyle = COLORS.loaderBucket;
         ctx.fill();
 
-        // Fill bucket with sand when FULL
+        // Sand in bucket when FULL
         if (loader.bucketState === 'FULL') {
             ctx.beginPath();
-            ctx.moveTo(w / 2 + 2,               -bucketBackH / 2 + 3);
-            ctx.lineTo(w / 2 + bucketW - 2,     -bucketFrontH / 2 + 3);
-            ctx.lineTo(w / 2 + bucketW - 2,      bucketFrontH / 2 - 3);
-            ctx.lineTo(w / 2 + 2,                bucketBackH / 2 - 3);
+            ctx.moveTo(bkX + 2,            -bkBackH / 2 + 3);
+            ctx.lineTo(bkX + bkDepth - 2,  -bkFrontH / 2 + 3);
+            ctx.lineTo(bkX + bkDepth - 2,   bkFrontH / 2 - 3);
+            ctx.lineTo(bkX + 2,             bkBackH / 2 - 3);
             ctx.closePath();
             ctx.fillStyle = COLORS.sand;
             ctx.fill();
         }
 
-        // Wheels (4 small dark rectangles at corners)
-        const wheelW = w * 0.14;
-        const wheelH = h * 0.22;
+        // ── Wheels (4 corner rectangles) ──
+        const wheelW = w * 0.12;
+        const wheelH = h * 0.24;
         ctx.fillStyle = COLORS.loaderWheel;
-
-        // Front-left
-        ctx.fillRect(w / 2 - wheelW - 2, -h / 2 - wheelH / 2, wheelW, wheelH);
-        // Front-right
-        ctx.fillRect(w / 2 - wheelW - 2,  h / 2 - wheelH / 2, wheelW, wheelH);
-        // Rear-left
-        ctx.fillRect(-w / 2 + 2,          -h / 2 - wheelH / 2, wheelW, wheelH);
-        // Rear-right
-        ctx.fillRect(-w / 2 + 2,           h / 2 - wheelH / 2, wheelW, wheelH);
+        // Rear pair
+        ctx.fillRect(-w / 2 + 2,           -h / 2 - wheelH / 2, wheelW, wheelH);
+        ctx.fillRect(-w / 2 + 2,            h / 2 - wheelH / 2, wheelW, wheelH);
+        // Front pair
+        ctx.fillRect(frontX + frontW * 0.1, -h / 2 - wheelH / 2, wheelW, wheelH);
+        ctx.fillRect(frontX + frontW * 0.1,  h / 2 - wheelH / 2, wheelW, wheelH);
 
         ctx.restore();
     }
@@ -148,50 +162,41 @@ export class Renderer {
         ctx.save();
         ctx.translate(x, y);
 
-        // Trucks move LEFT — cab is on the LEFT side (front)
-
         if (isPatelnia) {
             // ── Patelnia: tractor (left/front) + gap + trailer (right/rear) ──
             const tractorW = w * 0.3;
-            const gapW = w * 0.04;
+            const gapW     = w * 0.04;
             const trailerW = w - tractorW - gapW;
-
-            // Tractor — LEFT portion (front)
             const tractorX = -w / 2;
+
+            // Tractor
             ctx.fillStyle = typeInfo.color;
             ctx.fillRect(tractorX, -h / 2, tractorW, h);
 
-            // Cab on the tractor (left end — front)
+            // Cab
             const cabW = tractorW * 0.55;
             ctx.fillStyle = COLORS.truckCab;
             ctx.fillRect(tractorX, -h / 2, cabW, h);
 
-            // Windshield at left end
+            // Windshield
             const wsW = cabW * 0.35;
             const wsH = h * 0.55;
             ctx.fillStyle = COLORS.truckWindshield;
             ctx.fillRect(tractorX + 2, -wsH / 2, wsW, wsH);
 
-            // Trailer (cargo) — RIGHT portion (rear)
+            // Trailer
             const trailerX = -w / 2 + tractorW + gapW;
             ctx.fillStyle = typeInfo.color;
             ctx.fillRect(trailerX, -h / 2, trailerW, h);
 
-            // Cargo bed outline on trailer
             const cargoMargin = 3;
             ctx.strokeStyle = '#222';
             ctx.lineWidth = 1;
-            ctx.strokeRect(
-                trailerX + cargoMargin,
-                -h / 2 + cargoMargin,
-                trailerW - cargoMargin * 2,
-                h - cargoMargin * 2,
-            );
+            ctx.strokeRect(trailerX + cargoMargin, -h / 2 + cargoMargin, trailerW - cargoMargin * 2, h - cargoMargin * 2);
 
-            // Sand fill proportional to load
             const loadPct = truck.getLoadPercent();
             if (loadPct > 0) {
-                ctx.fillStyle = COLORS.truckCargo;
+                ctx.fillStyle = truck.overloaded ? COLORS.warning : COLORS.truckCargo;
                 ctx.fillRect(
                     trailerX + cargoMargin + 1,
                     -h / 2 + cargoMargin + 1,
@@ -200,59 +205,40 @@ export class Renderer {
                 );
             }
 
-            // Axles: 2 on tractor, 3 on trailer
+            // Axles
             ctx.strokeStyle = COLORS.loaderWheel;
             ctx.lineWidth = this._sy(3);
-            const tractorAxles = 2;
-            for (let i = 0; i < tractorAxles; i++) {
-                const ax = tractorX + (tractorW * (i + 1)) / (tractorAxles + 1);
-                ctx.beginPath();
-                ctx.moveTo(ax, -h / 2 - 2);
-                ctx.lineTo(ax,  h / 2 + 2);
-                ctx.stroke();
+            for (let i = 0; i < 2; i++) {
+                const ax = tractorX + (tractorW * (i + 1)) / 3;
+                ctx.beginPath(); ctx.moveTo(ax, -h / 2 - 2); ctx.lineTo(ax, h / 2 + 2); ctx.stroke();
             }
-            const trailerAxles = 3;
-            for (let i = 0; i < trailerAxles; i++) {
-                const ax = trailerX + (trailerW * (i + 1)) / (trailerAxles + 1);
-                ctx.beginPath();
-                ctx.moveTo(ax, -h / 2 - 2);
-                ctx.lineTo(ax,  h / 2 + 2);
-                ctx.stroke();
+            for (let i = 0; i < 3; i++) {
+                const ax = trailerX + (trailerW * (i + 1)) / 4;
+                ctx.beginPath(); ctx.moveTo(ax, -h / 2 - 2); ctx.lineTo(ax, h / 2 + 2); ctx.stroke();
             }
         } else {
             // ── Regular truck (3-osio, 4-osio) ──
-
-            // Body
             ctx.fillStyle = typeInfo.color;
             ctx.fillRect(-w / 2, -h / 2, w, h);
 
-            // Cab at LEFT side (front — truck moves left)
             const cabW = w * 0.28;
             ctx.fillStyle = COLORS.truckCab;
             ctx.fillRect(-w / 2, -h / 2, cabW, h);
 
-            // Windshield at left end
             const wsW = cabW * 0.4;
             const wsH = h * 0.55;
             ctx.fillStyle = COLORS.truckWindshield;
             ctx.fillRect(-w / 2 + 2, -wsH / 2, wsW, wsH);
 
-            // Cargo bed (outline) — RIGHT portion excluding cab
-            const cargoW = w - cabW - 6;
+            const cargoW      = w - cabW - 6;
             const cargoMargin = 3;
             ctx.strokeStyle = '#222';
             ctx.lineWidth = 1;
-            ctx.strokeRect(
-                -w / 2 + cabW + 3,
-                -h / 2 + cargoMargin,
-                cargoW,
-                h - cargoMargin * 2,
-            );
+            ctx.strokeRect(-w / 2 + cabW + 3, -h / 2 + cargoMargin, cargoW, h - cargoMargin * 2);
 
-            // Sand fill proportional to load
             const loadPct = truck.getLoadPercent();
             if (loadPct > 0) {
-                ctx.fillStyle = COLORS.truckCargo;
+                ctx.fillStyle = truck.overloaded ? COLORS.warning : COLORS.truckCargo;
                 ctx.fillRect(
                     -w / 2 + cabW + 4,
                     -h / 2 + cargoMargin + 1,
@@ -261,20 +247,69 @@ export class Renderer {
                 );
             }
 
-            // Axles
-            const axleCount = typeInfo.axles;
             ctx.strokeStyle = COLORS.loaderWheel;
             ctx.lineWidth = this._sy(3);
-            for (let i = 0; i < axleCount; i++) {
-                const ax = -w / 2 + (w * (i + 1)) / (axleCount + 1);
-                ctx.beginPath();
-                ctx.moveTo(ax, -h / 2 - 2);
-                ctx.lineTo(ax,  h / 2 + 2);
-                ctx.stroke();
+            for (let i = 0; i < typeInfo.axles; i++) {
+                const ax = -w / 2 + (w * (i + 1)) / (typeInfo.axles + 1);
+                ctx.beginPath(); ctx.moveTo(ax, -h / 2 - 2); ctx.lineTo(ax, h / 2 + 2); ctx.stroke();
             }
         }
 
         ctx.restore();
+    }
+
+    // ── speech bubble from truck cab ─────────────────────────
+    renderSpeechBubble(truck) {
+        if (truck.currentLoad > 0) return; // only show when empty/waiting
+        const ctx = this.ctx;
+        const tx = this._sx(truck.x);
+        const ty = this._sy(truck.y);
+        const tw = this._sx(truck.width);
+        const th = this._sy(truck.height);
+
+        // Position bubble above truck, near cab (left side)
+        const bubCx = tx - tw * 0.25;
+        const bubCy = ty - th / 2 - this._sy(32);
+
+        const text = TEXT.speech;
+        const fontSize = Math.round(this._sy(13));
+        ctx.font = `${fontSize}px sans-serif`;
+        const textW = ctx.measureText(text).width;
+        const pad = this._sx(8);
+        const bw  = textW + pad * 2;
+        const bh  = fontSize * 1.8;
+        const bx  = bubCx - bw / 2;
+        const bby = bubCy - bh / 2;
+        const rad = 6;
+
+        // Rounded rect bubble
+        ctx.fillStyle = COLORS.speechBg;
+        ctx.beginPath();
+        ctx.moveTo(bx + rad, bby);
+        ctx.lineTo(bx + bw - rad, bby);
+        ctx.quadraticCurveTo(bx + bw, bby, bx + bw, bby + rad);
+        ctx.lineTo(bx + bw, bby + bh - rad);
+        ctx.quadraticCurveTo(bx + bw, bby + bh, bx + bw - rad, bby + bh);
+        ctx.lineTo(bx + rad, bby + bh);
+        ctx.quadraticCurveTo(bx, bby + bh, bx, bby + bh - rad);
+        ctx.lineTo(bx, bby + rad);
+        ctx.quadraticCurveTo(bx, bby, bx + rad, bby);
+        ctx.closePath();
+        ctx.fill();
+
+        // Tail pointing down toward truck
+        ctx.beginPath();
+        ctx.moveTo(bubCx - 5, bby + bh);
+        ctx.lineTo(bubCx + 5, bby + bh);
+        ctx.lineTo(bubCx, bby + bh + this._sy(8));
+        ctx.closePath();
+        ctx.fill();
+
+        // Text
+        ctx.fillStyle = COLORS.speechText;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, bubCx, bubCy);
     }
 
     // ── Arek ─────────────────────────────────────────────────
@@ -286,33 +321,28 @@ export class Renderer {
         const y = this._sy(arek.y);
         const r = this._sx(arek.radius);
 
-        const headR   = r * 0.35;
-        const bodyW   = r * 0.5;
-        const bodyH   = r * 0.6;
-        const legW    = bodyW * 0.35;
-        const legH    = r * 0.35;
+        const headR = r * 0.35;
+        const bodyW = r * 0.5;
+        const bodyH = r * 0.6;
+        const legW  = bodyW * 0.35;
+        const legH  = r * 0.35;
 
-        // Legs (dark)
         ctx.fillStyle = COLORS.arekPants;
         ctx.fillRect(x - bodyW / 2,       y + bodyH / 2, legW, legH);
         ctx.fillRect(x + bodyW / 2 - legW, y + bodyH / 2, legW, legH);
 
-        // Body / vest (orange)
         ctx.fillStyle = COLORS.arekVest;
         ctx.fillRect(x - bodyW / 2, y - bodyH / 2, bodyW, bodyH);
 
-        // Yellow horizontal stripe on vest
         const stripeH = bodyH * 0.18;
         ctx.fillStyle = COLORS.arekVestStripe;
         ctx.fillRect(x - bodyW / 2, y + bodyH * 0.1, bodyW, stripeH);
 
-        // Head (skin)
         ctx.fillStyle = COLORS.arekSkin;
         ctx.beginPath();
         ctx.arc(x, y - bodyH / 2 - headR, headR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Hard hat (yellow semicircle on top of head)
         ctx.fillStyle = COLORS.arekHelmet;
         ctx.beginPath();
         ctx.arc(x, y - bodyH / 2 - headR, headR + 2, Math.PI, 0);
@@ -324,10 +354,8 @@ export class Renderer {
         const ctx = this.ctx;
         const outerR = this._sx(55);
         const innerR = this._sx(24);
-
-        // Always show static hint in bottom-left
-        const hintX = this._sx(120);
-        const hintY = this.canvas.height - this._sy(110);
+        const hintX  = this._sx(120);
+        const hintY  = this.canvas.height - this._sy(110);
 
         ctx.strokeStyle = 'rgba(255,255,255,0.18)';
         ctx.lineWidth = 2;
@@ -340,45 +368,37 @@ export class Renderer {
         ctx.arc(hintX, hintY, innerR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Draw active joystick on top when touching
         if (!input || !input.joystick || !input.joystick.active) return;
 
         const j = input.joystick;
-        const baseX  = j.startX;
-        const baseY  = j.startY;
-        const thumbX = j.currentX;
-        const thumbY = j.currentY;
-
-        // Outer ring
         ctx.strokeStyle = COLORS.joystickBase;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(baseX, baseY, outerR, 0, Math.PI * 2);
+        ctx.arc(j.startX, j.startY, outerR, 0, Math.PI * 2);
         ctx.stroke();
 
         ctx.fillStyle = COLORS.joystickBase;
         ctx.beginPath();
-        ctx.arc(baseX, baseY, outerR, 0, Math.PI * 2);
+        ctx.arc(j.startX, j.startY, outerR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Inner thumb
         ctx.fillStyle = COLORS.joystickThumb;
         ctx.beginPath();
-        ctx.arc(thumbX, thumbY, innerR, 0, Math.PI * 2);
+        ctx.arc(j.currentX, j.currentY, innerR, 0, Math.PI * 2);
         ctx.fill();
     }
 
     // ── action button ────────────────────────────────────────
-    renderActionButton(label, enabled) {
+    renderActionButton(label, enabled, fillTons = 0) {
         const ctx = this.ctx;
-        const btnW = this._sx(200);
-        const btnH = this._sy(90);
+        const btnW  = this._sx(200);
+        const btnH  = this._sy(90);
         const margin = this._sx(24);
-        const bx = this.canvas.width - btnW - margin;
-        const by = this.canvas.height - btnH - margin;
+        const bx    = this.canvas.width - btnW - margin;
+        const by    = this.canvas.height - btnH - margin;
         const radius = this._sx(16);
 
-        // Rounded rectangle
+        // Background
         ctx.fillStyle = enabled ? COLORS.actionButton : COLORS.actionButtonDisabled;
         ctx.beginPath();
         ctx.moveTo(bx + radius, by);
@@ -399,12 +419,33 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, bx + btnW / 2, by + btnH / 2);
+
+        // Fill progress bar when scooping (hold mechanic)
+        if (fillTons > 0 && label === TEXT.scoop) {
+            const barPad  = this._sx(8);
+            const barH    = this._sy(8);
+            const barY    = by + btnH - barH - this._sy(6);
+            const barW    = btnW - barPad * 2;
+            const fillPct = fillTons / BUCKET_MAX_TONS;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(bx + barPad, barY, barW, barH);
+
+            ctx.fillStyle = COLORS.actionButtonHold;
+            ctx.fillRect(bx + barPad, barY, barW * fillPct, barH);
+
+            // Ton counter inside button
+            const tStr = `${Math.round(fillTons)}t`;
+            ctx.fillStyle = COLORS.buttonText;
+            ctx.font = `bold ${Math.round(this._sy(20))}px sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.fillText(tStr, bx + btnW - barPad, by + btnH * 0.38);
+        }
     }
 
     // ── warning text ─────────────────────────────────────────
     renderWarning(text, alpha) {
         if (alpha <= 0) return;
-
         const ctx = this.ctx;
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -417,13 +458,11 @@ export class Renderer {
         const cx = this.canvas.width / 2;
         const cy = this.canvas.height / 2;
 
-        // Black outline
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = this._sx(6);
         ctx.lineJoin = 'round';
         ctx.strokeText(text, cx, cy);
 
-        // Red / orange fill
         ctx.fillStyle = COLORS.warning;
         ctx.fillText(text, cx, cy);
 

@@ -1,11 +1,11 @@
 import { TRUCK_TYPES } from '../utils/constants.js';
 
-const STATE_ARRIVING = 'ARRIVING';
-const STATE_WAITING = 'WAITING';
-const STATE_FULL = 'FULL';
+const STATE_ARRIVING  = 'ARRIVING';
+const STATE_WAITING   = 'WAITING';
+const STATE_FULL      = 'FULL';
 const STATE_DEPARTING = 'DEPARTING';
 
-const FULL_PAUSE_TIME = 1000; // ms pause before departing when full
+const FULL_PAUSE_TIME = 800; // ms before departing after horn
 
 export class Truck {
     constructor(typeKey, truckWait, truckEntry, truckExit) {
@@ -21,6 +21,8 @@ export class Truck {
         this.y = truckEntry.y;
         this.state = STATE_ARRIVING;
         this.currentLoad = 0;
+        this.overloaded = false;
+        this.loadingTimer = 0; // seconds elapsed while waiting (for scoring)
 
         this._waitPos = { x: truckWait.x, y: truckWait.y };
         this._exitPos = { x: truckExit.x, y: truckExit.y };
@@ -32,84 +34,67 @@ export class Truck {
 
         switch (this.state) {
             case STATE_ARRIVING: {
-                // Move from entry toward wait position
                 const dx = this._waitPos.x - this.x;
                 const dy = this._waitPos.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
                 if (dist < speed * dt) {
                     this.x = this._waitPos.x;
                     this.y = this._waitPos.y;
                     this.state = STATE_WAITING;
                 } else {
-                    const nx = dx / dist;
-                    const ny = dy / dist;
-                    this.x += nx * speed * dt;
-                    this.y += ny * speed * dt;
+                    this.x += (dx / dist) * speed * dt;
+                    this.y += (dy / dist) * speed * dt;
                 }
                 break;
             }
 
             case STATE_WAITING:
-                // Idle, waiting for load
+                this.loadingTimer += dt; // count up while waiting
                 break;
 
-            case STATE_FULL: {
-                // Brief pause then depart
+            case STATE_FULL:
                 this._fullPauseTimer -= dt * 1000;
-                if (this._fullPauseTimer <= 0) {
-                    this.state = STATE_DEPARTING;
-                }
+                if (this._fullPauseTimer <= 0) this.state = STATE_DEPARTING;
                 break;
-            }
 
             case STATE_DEPARTING: {
-                // Move toward exit
                 const dx = this._exitPos.x - this.x;
                 const dy = this._exitPos.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
                 if (dist < speed * dt) {
                     this.x = this._exitPos.x;
                     this.y = this._exitPos.y;
                 } else {
-                    const nx = dx / dist;
-                    const ny = dy / dist;
-                    this.x += nx * speed * dt;
-                    this.y += ny * speed * dt;
+                    this.x += (dx / dist) * speed * dt;
+                    this.y += (dy / dist) * speed * dt;
                 }
                 break;
             }
         }
     }
 
+    // Add load; allows overload — sets overloaded flag. Returns tons added.
     addLoad(tons) {
-        if (this.currentLoad + tons > this.maxLoad) {
-            return 0; // overload attempt
-        }
         this.currentLoad += tons;
-        // Do NOT auto-depart — player must press horn signal
+        if (this.currentLoad > this.maxLoad) this.overloaded = true;
         return tons;
     }
 
-    // Returns true when truck is fully loaded and waiting for horn signal
+    // True when truck has reached max load and player can press horn
     readyToSignal() {
         return this.state === STATE_WAITING && this.currentLoad >= this.maxLoad;
     }
 
-    // Called when player presses horn — starts departure countdown
+    // Called on horn press — starts departure countdown
     signalDeparture() {
         this.state = STATE_FULL;
         this._fullPauseTimer = FULL_PAUSE_TIME;
     }
 
-    isFull() {
-        return this.currentLoad >= this.maxLoad;
-    }
+    isFull() { return this.currentLoad >= this.maxLoad; }
 
     isGone() {
-        return this.state === STATE_DEPARTING &&
-            this.x <= this._exitPos.x + 5;
+        return this.state === STATE_DEPARTING && this.x <= this._exitPos.x + 5;
     }
 
     getBounds() {
@@ -122,6 +107,6 @@ export class Truck {
     }
 
     getLoadPercent() {
-        return this.currentLoad / this.maxLoad;
+        return Math.min(this.currentLoad / this.maxLoad, 1);
     }
 }
