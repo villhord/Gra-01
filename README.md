@@ -1,1 +1,1 @@
-# Gra-01: Ładowarka
+IyBHcmEtMDE6IMWBYWRvd2Fya2EK
