@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gra01-v1';
+const CACHE_NAME = 'gra01-v2';
 const FILES_TO_CACHE = [
     './',
     './index.html',
