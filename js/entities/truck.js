@@ -88,11 +88,19 @@ export class Truck {
             return 0; // overload attempt
         }
         this.currentLoad += tons;
-        if (this.currentLoad >= this.maxLoad) {
-            this.state = STATE_FULL;
-            this._fullPauseTimer = FULL_PAUSE_TIME;
-        }
+        // Do NOT auto-depart — player must press horn signal
         return tons;
+    }
+
+    // Returns true when truck is fully loaded and waiting for horn signal
+    readyToSignal() {
+        return this.state === STATE_WAITING && this.currentLoad >= this.maxLoad;
+    }
+
+    // Called when player presses horn — starts departure countdown
+    signalDeparture() {
+        this.state = STATE_FULL;
+        this._fullPauseTimer = FULL_PAUSE_TIME;
     }
 
     isFull() {

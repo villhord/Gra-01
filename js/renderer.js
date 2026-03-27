@@ -148,24 +148,41 @@ export class Renderer {
         ctx.save();
         ctx.translate(x, y);
 
-        // Trucks face left (toward exit), so cab is on the right side
+        // Trucks move LEFT — cab is on the LEFT side (front)
 
         if (isPatelnia) {
-            // ── Patelnia: tractor + articulation gap + trailer ──
+            // ── Patelnia: tractor (left/front) + gap + trailer (right/rear) ──
             const tractorW = w * 0.3;
             const gapW = w * 0.04;
             const trailerW = w - tractorW - gapW;
 
-            // Trailer (cargo) — left portion
+            // Tractor — LEFT portion (front)
+            const tractorX = -w / 2;
             ctx.fillStyle = typeInfo.color;
-            ctx.fillRect(-w / 2, -h / 2, trailerW, h);
+            ctx.fillRect(tractorX, -h / 2, tractorW, h);
+
+            // Cab on the tractor (left end — front)
+            const cabW = tractorW * 0.55;
+            ctx.fillStyle = COLORS.truckCab;
+            ctx.fillRect(tractorX, -h / 2, cabW, h);
+
+            // Windshield at left end
+            const wsW = cabW * 0.35;
+            const wsH = h * 0.55;
+            ctx.fillStyle = COLORS.truckWindshield;
+            ctx.fillRect(tractorX + 2, -wsH / 2, wsW, wsH);
+
+            // Trailer (cargo) — RIGHT portion (rear)
+            const trailerX = -w / 2 + tractorW + gapW;
+            ctx.fillStyle = typeInfo.color;
+            ctx.fillRect(trailerX, -h / 2, trailerW, h);
 
             // Cargo bed outline on trailer
             const cargoMargin = 3;
             ctx.strokeStyle = '#222';
             ctx.lineWidth = 1;
             ctx.strokeRect(
-                -w / 2 + cargoMargin,
+                trailerX + cargoMargin,
                 -h / 2 + cargoMargin,
                 trailerW - cargoMargin * 2,
                 h - cargoMargin * 2,
@@ -176,51 +193,27 @@ export class Renderer {
             if (loadPct > 0) {
                 ctx.fillStyle = COLORS.truckCargo;
                 ctx.fillRect(
-                    -w / 2 + cargoMargin + 1,
+                    trailerX + cargoMargin + 1,
                     -h / 2 + cargoMargin + 1,
                     (trailerW - cargoMargin * 2 - 2) * loadPct,
                     h - cargoMargin * 2 - 2,
                 );
             }
 
-            // Articulation gap
-            // (just leave the gap empty — terrain shows through)
-
-            // Tractor — right portion
-            const tractorX = -w / 2 + trailerW + gapW;
-            ctx.fillStyle = typeInfo.color;
-            ctx.fillRect(tractorX, -h / 2, tractorW, h);
-
-            // Cab on the tractor (right end)
-            const cabW = tractorW * 0.55;
-            ctx.fillStyle = COLORS.truckCab;
-            ctx.fillRect(tractorX + tractorW - cabW, -h / 2, cabW, h);
-
-            // Windshield
-            const wsW = cabW * 0.35;
-            const wsH = h * 0.55;
-            ctx.fillStyle = COLORS.truckWindshield;
-            ctx.fillRect(
-                tractorX + tractorW - wsW - 2,
-                -wsH / 2,
-                wsW,
-                wsH,
-            );
-
-            // Axles: 3 on trailer, 3 on tractor (for 6 total)
+            // Axles: 2 on tractor, 3 on trailer
             ctx.strokeStyle = COLORS.loaderWheel;
             ctx.lineWidth = this._sy(3);
-            const trailerAxles = 3;
-            for (let i = 0; i < trailerAxles; i++) {
-                const ax = -w / 2 + (trailerW * (i + 1)) / (trailerAxles + 1);
+            const tractorAxles = 2;
+            for (let i = 0; i < tractorAxles; i++) {
+                const ax = tractorX + (tractorW * (i + 1)) / (tractorAxles + 1);
                 ctx.beginPath();
                 ctx.moveTo(ax, -h / 2 - 2);
                 ctx.lineTo(ax,  h / 2 + 2);
                 ctx.stroke();
             }
-            const tractorAxles = 3;
-            for (let i = 0; i < tractorAxles; i++) {
-                const ax = tractorX + (tractorW * (i + 1)) / (tractorAxles + 1);
+            const trailerAxles = 3;
+            for (let i = 0; i < trailerAxles; i++) {
+                const ax = trailerX + (trailerW * (i + 1)) / (trailerAxles + 1);
                 ctx.beginPath();
                 ctx.moveTo(ax, -h / 2 - 2);
                 ctx.lineTo(ax,  h / 2 + 2);
@@ -233,29 +226,24 @@ export class Renderer {
             ctx.fillStyle = typeInfo.color;
             ctx.fillRect(-w / 2, -h / 2, w, h);
 
-            // Cab at right side (front since truck faces left)
+            // Cab at LEFT side (front — truck moves left)
             const cabW = w * 0.28;
             ctx.fillStyle = COLORS.truckCab;
-            ctx.fillRect(w / 2 - cabW, -h / 2, cabW, h);
+            ctx.fillRect(-w / 2, -h / 2, cabW, h);
 
-            // Windshield
+            // Windshield at left end
             const wsW = cabW * 0.4;
             const wsH = h * 0.55;
             ctx.fillStyle = COLORS.truckWindshield;
-            ctx.fillRect(
-                w / 2 - wsW - 2,
-                -wsH / 2,
-                wsW,
-                wsH,
-            );
+            ctx.fillRect(-w / 2 + 2, -wsH / 2, wsW, wsH);
 
-            // Cargo bed (outline) — the portion excluding cab
+            // Cargo bed (outline) — RIGHT portion excluding cab
             const cargoW = w - cabW - 6;
             const cargoMargin = 3;
             ctx.strokeStyle = '#222';
             ctx.lineWidth = 1;
             ctx.strokeRect(
-                -w / 2 + cargoMargin,
+                -w / 2 + cabW + 3,
                 -h / 2 + cargoMargin,
                 cargoW,
                 h - cargoMargin * 2,
@@ -266,7 +254,7 @@ export class Renderer {
             if (loadPct > 0) {
                 ctx.fillStyle = COLORS.truckCargo;
                 ctx.fillRect(
-                    -w / 2 + cargoMargin + 1,
+                    -w / 2 + cabW + 4,
                     -h / 2 + cargoMargin + 1,
                     (cargoW - 2) * loadPct,
                     h - cargoMargin * 2 - 2,

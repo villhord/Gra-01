@@ -194,15 +194,8 @@ export class Game {
             this._handleAction();
         }
 
-        // 9. Check if current truck is full (only count once)
+        // 9. Truck departure tracking (bonus counted on horn press in _handleAction)
         const currentTruck = this._getCurrentTruck();
-        if (currentTruck && currentTruck.isFull() && !currentTruck._bonusCounted) {
-            currentTruck._bonusCounted = true;
-            this.score += SCORE_TRUCK_BONUS;
-            this.trucksLoaded++;
-            this._trucksThisLevel++;
-            playTruckHorn();
-        }
 
         // 10. Check if truck departed → spawn next or advance level
         if (currentTruck && currentTruck.isGone()) {
@@ -264,8 +257,17 @@ export class Game {
         const action = this.determineActionLabel();
         if (!action || !action.enabled) return;
 
-        if (action.label === TEXT.scoop) {
-            // Find nearest pile that can be scooped
+        if (action.label === TEXT.horn) {
+            // Player signals truck to depart
+            const truck = this._getCurrentTruck();
+            if (truck && truck.readyToSignal()) {
+                this.score += SCORE_TRUCK_BONUS;
+                this.trucksLoaded++;
+                this._trucksThisLevel++;
+                playTruckHorn();
+                truck.signalDeparture();
+            }
+        } else if (action.label === TEXT.scoop) {
             for (const pile of this.sandPiles) {
                 const dist = pointDist(this.loader.x, this.loader.y, pile.x, pile.y);
                 if (dist < SANDPILE_INTERACTION_DIST && pile.canScoop()) {
@@ -285,7 +287,6 @@ export class Game {
                     this.score += SCORE_PER_DUMP;
                     playDumpSound();
                 } else {
-                    // Overload
                     this.overloadMessage = TEXT.overloaded;
                     this.overloadTimer = OVERLOAD_MSG_DURATION;
                     this.score += SCORE_OVERLOAD_PENALTY;
@@ -298,7 +299,14 @@ export class Game {
 
     // ── ACTION LABEL ───────────────────────────────────────────
     determineActionLabel() {
-        // Check proximity to sand piles (bucket must be empty)
+        const truck = this._getCurrentTruck();
+
+        // Priority 1: truck fully loaded → show horn button (anywhere on screen)
+        if (truck && truck.readyToSignal()) {
+            return { label: TEXT.horn, enabled: true };
+        }
+
+        // Priority 2: bucket empty near sand pile → ZAŁADUJ
         if (this.loader.bucketState === 'EMPTY') {
             for (const pile of this.sandPiles) {
                 const dist = pointDist(this.loader.x, this.loader.y, pile.x, pile.y);
@@ -308,9 +316,8 @@ export class Game {
             }
         }
 
-        // Check proximity to truck (bucket must be full, truck must be waiting)
+        // Priority 3: bucket full near waiting truck → WYSYP
         if (this.loader.bucketState === 'FULL') {
-            const truck = this._getCurrentTruck();
             if (truck && truck.state === 'WAITING') {
                 const dist = pointDist(this.loader.x, this.loader.y, truck.x, truck.y);
                 if (dist < INTERACTION_DIST + truck.width / 2) {

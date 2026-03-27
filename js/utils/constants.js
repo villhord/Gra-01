@@ -99,7 +99,7 @@ export const AREK_WARNING_DURATION = 2000; // ms warning displayed
 
 // === LEVELS ===
 export const LEVELS = [
-    { time: 90, trucks: 2, types: ['3-osio'], arekInterval: 0 },
+    { time: 90, trucks: 2, types: ['3-osio'], arekInterval: 20000 },
     { time: 85, trucks: 2, types: ['3-osio', '4-osio'], arekInterval: 30000 },
     { time: 80, trucks: 3, types: ['3-osio', '4-osio'], arekInterval: 25000 },
     { time: 75, trucks: 3, types: ['4-osio', 'patelnia'], arekInterval: 20000 },
@@ -135,6 +135,7 @@ export const TEXT = {
     playAgain: 'ZAGRAJ PONOWNIE',
     scoop: 'ZAŁADUJ',
     dump: 'WYSYP',
+    horn: 'SYGNAŁ',
     overloaded: 'PRZEŁADOWANE!',
     arekWarning: 'UWAGA AREK!',
     levelUp: 'POZIOM',
